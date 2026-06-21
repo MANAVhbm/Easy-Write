@@ -1,40 +1,211 @@
-/* Reset margins and prevent the browser from adding scrollbars */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+        /* --- THEME ENGINE: LIGHT MODE (DEFAULT) --- */
+        :root {
+            --bg-canvas: #fdfdff;
+            --grid-color: #e5e7eb;
+            --bg-panel: #ffffff;
+            --border-light: #e0e0e0;
+            --text-main: #1e1e1e;
+            --text-muted: #6b7280;
+            --btn-hover: #f3f4f6;
+            --accent: #6965db;
+            --accent-bg: #e6e5ff;
+            --shadow-float: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius-md: 8px;
+            --radius-sm: 6px;
+            --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-body {
-    font-family: sans-serif;
-    background-color: #f0f0f5;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden; /* Prevents accidental scrolling while drawing */
-}
+        /* --- THEME ENGINE: DARK MODE --- */
+        [data-theme="dark"] {
+            --bg-canvas: #121212;
+            --grid-color: #2a2a2a;
+            --bg-panel: #232329;
+            --border-light: #36363d;
+            --text-main: #ececf1;
+            --text-muted: #8b8b93;
+            --btn-hover: #2f2f36;
+            --accent: #b6b3fb;
+            --accent-bg: #3c3c5a;
+            --shadow-float: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        }
 
-/* The main whiteboard area */
-#workspace {
-    width: 100%;
-    height: 100%;
-    background-color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative; /* Crucial for overlaying elements later if needed */
-}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        body { font-family: var(--font-sans); background-color: var(--bg-canvas); color: var(--text-main); position: relative; user-select: none; transition: background-color 0.2s ease, color 0.2s ease; }
+        
+        /* --- SIDEBAR ENGINE (OneNote Style) --- */
+        #sidebar {
+            position: absolute; top: 0; left: -300px; width: 280px; height: 100%;
+            background: var(--bg-panel); border-right: 1px solid var(--border-light);
+            box-shadow: var(--shadow-float); z-index: 60; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        #sidebar.open { left: 0; }
+        .sidebar-header {
+            padding: 16px; border-bottom: 1px solid var(--border-light);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .sidebar-title { font-weight: 700; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .page-list { flex: 1; overflow-y: auto; padding: 12px; }
+        .page-item {
+            padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer;
+            display: flex; align-items: center; gap: 10px; color: var(--text-main);
+            font-size: 14px; transition: 0.15s; margin-bottom: 4px;
+        }
+        .page-item:hover { background: var(--btn-hover); }
+        .page-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+        .page-title-edit { outline: none; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text;}
+        .add-page-btn {
+            margin: 12px; padding: 12px; border: 1px dashed var(--border-light);
+            border-radius: var(--radius-sm); background: transparent; cursor: pointer;
+            color: var(--text-main); display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; font-weight: 500;
+        }
+        .add-page-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+        /* --- UTILITIES & FIXES --- */
+        #text-input {
+            position: absolute; display: none; background: transparent; border: 1px dashed var(--accent);
+            outline: none; font-family: inherit; color: var(--text-main); white-space: pre-wrap; word-wrap: break-word;
+            z-index: 10; min-width: 20px; min-height: 20px;
+        }
+        
+        /* Guarantee the bottom-corner menu icons are always perfectly sized and visible */
+        .menu-btn svg { width: 18px; height: 18px; stroke-width: 2.2; }
+        
+        /* --- CANVAS --- */
+        #canvas-area {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+            background-image: radial-gradient(var(--grid-color) 1px, transparent 0); 
+            background-size: 24px 24px; background-position: 0px 0px;
+        }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; }
 
-/* Temporary placeholder styling */
-#canvas-placeholder {
-    color: #a0a0a0;
-    font-size: 1.2rem;
-    font-weight: bold;
-    letter-spacing: 1px;
-}
-/* Make the canvas fill its parent container exactly */
-#note-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    cursor: crosshair; /* Changes the mouse pointer to look like a drawing tool */
-}
+        /* --- UI COMPONENT SYSTEM --- */
+        .panel { 
+            background: var(--bg-panel); border: 1px solid var(--border-light); 
+            border-radius: var(--radius-md); box-shadow: var(--shadow-float); 
+            position: absolute; display: flex; align-items: center; z-index: 50;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        /* Top Left Hamburger */
+        .top-left-corner { position: absolute; top: 16px; left: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 50; }
+        .menu-btn { background: var(--bg-panel); border: 1px solid var(--border-light); width: 40px; height: 40px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; box-shadow: var(--shadow-float); transition: 0.2s; }
+        .menu-btn:hover { background: var(--btn-hover); }
+
+        /* Top Right Actions */
+        .top-right-corner { position: absolute; top: 16px; right: 16px; display: flex; gap: 12px; z-index: 50; }
+        .share-btn { background: var(--accent); color: #ffffff; border: none; width: 40px; height: 40px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-float); transition: 0.2s; }
+        .share-btn:hover { filter: brightness(1.1); }
+        [data-theme="dark"] .share-btn { color: #121212; }
+
+        /* TOP CENTER TOOLBAR (Excalidraw Layout) */
+        #top-toolbar { top: 16px; left: 50%; transform: translateX(-50%); padding: 6px; gap: 4px; }
+        
+        .icon-btn { 
+            width: 36px; height: 36px; border-radius: var(--radius-sm); border: none; 
+            background: transparent; color: var(--text-muted); cursor: pointer; 
+            display: flex; justify-content: center; align-items: center; transition: 0.1s; 
+        }
+        .icon-btn svg { width: 18px; height: 18px; stroke-width: 2.2; }
+        .icon-btn:hover { background: var(--btn-hover); color: var(--text-main); }
+        .icon-btn.active { background: var(--accent-bg); color: var(--accent); }
+        
+        .divider { width: 1px; height: 24px; background: var(--border-light); margin: 0 4px; transition: 0.2s; }
+
+        /* DROPDOWN PROPERTIES PANEL */
+        #properties-panel { 
+            position: absolute; top: 65px; left: 50%; transform: translateX(-50%) translateY(-10px);
+            width: 260px; padding: 16px; display: flex; flex-direction: column; gap: 16px;
+            opacity: 0; pointer-events: none; transition: 0.2s ease; z-index: 49;
+        }
+        #properties-panel.active { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+        
+        .prop-label { font-size: 12px; font-weight: 500; color: var(--text-main); margin-bottom: 8px; }
+        
+        .width-row { display: flex; gap: 8px; width: 100%; }
+        .width-btn { 
+            flex: 1; height: 36px; border: 1px solid transparent; background: var(--btn-hover); 
+            border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; 
+            justify-content: center; transition: 0.2s; 
+        }
+        .width-btn:hover { filter: brightness(0.9); }
+        [data-theme="dark"] .width-btn:hover { filter: brightness(1.2); }
+        .width-btn.active { background: var(--accent-bg); border-color: var(--accent); }
+        
+        .w-line { background: var(--text-main); border-radius: 2px; width: 16px; }
+        .width-btn.active .w-line { background: var(--accent); }
+
+        .color-row { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
+        .color-swatch { width: 28px; height: 28px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: var(--text-main); }
+
+        /* BOTTOM LEFT PILLS */
+/* BOTTOM LEFT PILLS */
+        .bottom-left-corner { position: absolute; bottom: 16px; left: 16px; display: flex; gap: 12px; z-index: 50; }
+        .pill-panel { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: var(--radius-md); display: flex; align-items: center; padding: 4px; box-shadow: var(--shadow-float); transition: 0.2s; }
+        
+        .icon-btn-sm { width: 32px; height: 32px; border-radius: var(--radius-sm); border: none; background: transparent; color: var(--text-main); cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .icon-btn-sm:hover { background: var(--btn-hover); }
+        .icon-btn-sm:disabled { color: var(--text-muted); cursor: not-allowed; background: transparent; opacity: 0.5; }
+        .icon-btn-sm svg { width: 16px; height: 16px; }
+        
+        .zoom-text { width: 45px; text-align: center; font-size: 13px; font-weight: 500; color: var(--text-main); }
+
+        /* NEW: BOTTOM RIGHT CORNER */
+        .bottom-right-corner { position: absolute; bottom: 16px; right: 16px; display: flex; gap: 12px; z-index: 50; }
+        .bottom-right-corner button { border-radius: 50%; /* Makes them circular like Excalidraw's bottom buttons */ }
+
+        /* FLOATING RESULTS PANEL */
+        /* Note: Changed bottom from 16px to 72px so it floats above the new buttons */
+        .floating-results { position: absolute; bottom: 72px; right: 16px; width: 320px; flex-direction: column; align-items: stretch; padding: 16px; display: none; z-index: 49; }
+        .floating-results.active { display: flex; }
+        .results-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .results-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+        .text-btn { background: none; border: none; color: var(--text-main); font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; transition: 0.2s; }
+        .text-btn:hover { background: var(--btn-hover); }
+        .output-display { font-size: 16px; color: var(--text-main); min-height: 24px; line-height: 1.5; }
+
+/* --- LOCK MODE STYLES --- */
+        body.locked-mode #top-toolbar .icon-btn:not(#lockBtn, #handBtn, #pointerBtn) { 
+            opacity: 0.3; pointer-events: none; 
+        }
+        body.locked-mode #undoBtn, body.locked-mode #redoBtn { 
+            opacity: 0.3; pointer-events: none; 
+        }
+        body.locked-mode #properties-panel { 
+            opacity: 0 !important; pointer-events: none !important; 
+        }
+
+
+        /* --- RESPONSIVE LOGIC FOR SMALLER SCREENS --- */
+/* Toolbar Grouping Container */
+        .toolbar-group { display: flex; gap: 4px; align-items: center; }
+
+        /* --- RESPONSIVE LOGIC FOR SMALLER SCREENS --- */
+        @media (max-width: 900px) {
+            .top-left-corner { z-index: 100; }
+            .top-right-corner { z-index: 100; gap: 6px; }
+            
+            #top-toolbar { 
+                gap: 8px; /* Slightly larger gap to separate the grouped blocks */
+                padding: 6px 12px; 
+                flex-wrap: wrap; 
+                justify-content: center;
+                max-width: calc(100vw - 130px); 
+            }
+            
+            /* Hide vertical dividers when wrapped to prevent messy, orphaned lines */
+            #top-toolbar .divider { display: none; } 
+            
+            /* Allow groups to safely wrap internally on extremely small screens */
+            .toolbar-group { flex-wrap: wrap; justify-content: center; }
+            
+            .icon-btn { width: 32px; height: 32px; min-width: 32px; padding: 0 4px; }
+            .icon-btn svg { width: 16px; height: 16px; }
+            
+            #properties-panel { top: 110px; }
+            
+            .text-btn { font-size: 0; padding: 4px; }
+            .text-btn svg { margin: 0 !important; }
+        }    
