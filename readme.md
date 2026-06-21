@@ -1,4 +1,4 @@
-# Notebook Workspace Pro 📝
+# Easy-Write 📝
 
 A high-performance, distraction-free digital notebook built with HTML5 Canvas and vanilla JavaScript. Engineered to provide a fluid, infinite-canvas experience with custom math for ink smoothing, ray-casting collision detection, and a local Python OCR bridge.
 
