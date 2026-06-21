@@ -1,0 +1,40 @@
+/* Reset margins and prevent the browser from adding scrollbars */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: sans-serif;
+    background-color: #f0f0f5;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden; /* Prevents accidental scrolling while drawing */
+}
+
+/* The main whiteboard area */
+#workspace {
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* Crucial for overlaying elements later if needed */
+}
+
+/* Temporary placeholder styling */
+#canvas-placeholder {
+    color: #a0a0a0;
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+/* Make the canvas fill its parent container exactly */
+#note-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair; /* Changes the mouse pointer to look like a drawing tool */
+}

@@ -1,0 +1,6 @@
+# Python Virtual Environment
+venv/
+__pycache__/
+
+# Debug images
+debug_snapshot.png
