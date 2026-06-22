@@ -4,3 +4,4 @@ __pycache__/
 
 # Debug images
 debug_snapshot.png
+.env

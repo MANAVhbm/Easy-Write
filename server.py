@@ -1,4 +1,4 @@
-# server.py - Dual-Model Backend with Protected Technical Vocabulary
+# server.py - Dual-Model Backend (TrOCR for Text, Gemini 3.5 Flash for Math)
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -8,46 +8,41 @@ from autocorrect import Speller
 import base64
 import io
 import re
-from pix2tex.cli import LatexOCR
+import os
 
+# NEW: Import dotenv to read the hidden .env file
+from dotenv import load_dotenv
 
+from google import genai
+from google.genai import types
 
-import google.generativeai as genai # Ensure you have this installed
-
-# Configure your API key
-genai.configure(api_key="YOUR_GEMINI_API_KEY")
-
-def repair_latex_with_llm(image_bytes, failed_latex):
-    """
-    If pix2tex fails, ask the LLM to look at the image and 
-    fix the LaTeX syntax hallucination.
-    """
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    # Convert bytes to PIL for Gemini
-    img = Image.open(io.BytesIO(image_bytes))
-    
-    prompt = f"""
-    The following LaTeX was generated from an image of a math equation, 
-    but it contains hallucinations or syntax errors: '{failed_latex}'.
-    Please look at the image and provide ONLY the corrected, clean LaTeX 
-    string. Do not include markdown backticks.
-    """
-    
-    response = model.generate_content([prompt, img])
-    return response.text.strip()
-
+# NEW: Load the environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
-print("Loading pix2tex Math Model...")
-math_model = LatexOCR()
+
+# --- GEMINI SETUP (NEW SDK) ---
+print("Loading Gemini API (New SDK)...")
+
+# Initialize the new Client architecture using the hidden key
+gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# ... rest of your code ...
+# Define the strict behavior using the new config types
+math_config = types.GenerateContentConfig(
+    temperature=0.0, # Zero creativity, purely factual OCR
+    system_instruction="You are an expert math OCR engine. You will receive an image of handwritten mathematics. Your ONLY job is to return the exact LaTeX code representing the image. \n- NEVER output markdown formatting (like ```latex).\n- NEVER output explanations or conversational text.\n- If it is a single symbol like '+', just output '+'.\n- ONLY output the raw LaTeX string."
+)
+
+
+# --- TrOCR SETUP (TEXT ENGINE) ---
 print("Loading Microsoft TrOCR and Spell Checker...")
 processor = TrOCRProcessor.from_pretrained('microsoft/trocr-base-handwritten')
 model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-handwritten')
 spell = Speller(lang='en')
 
-# 1. DEFINE YOUR CUSTOM WHITELIST
+# Define protected technical terminology whitelist
 TECHNICAL_WHITELIST = {
     "FLT", "UAV", "PID", "EKF", "GAZEBO", "ROS", "MAVLINK", "CAD", "MATLAB", "GYRO"
 }
@@ -72,40 +67,10 @@ def process_and_correct_text(text):
 
     return " ".join(corrected_words)
 
-# --- THE SANITY REFEREE (NEW) ---
-# --- THE SANITY REFEREE ---
-def is_pix2tex_garbage(latex_string):
-    """
-    Evaluates a LaTeX string to determine if the model hallucinated.
-    """
-    clean_str = latex_string.replace(" ", "")
-    
-    # 1. Length Check: A single handwritten equation is rarely over 150 chars.
-    if len(clean_str) > 150:
-        return True
-        
-    # 2. The Array Hallucination Check: Reject massive broken matrices
-    if "array" in clean_str and len(clean_str) > 80:
-        return True
-
-    # 3. Standard Garbage Text Check
-    math_symbols = ['=', '+', '-', '*', '/', '^', '_', '\\', '<', '>', '(', ')']
-    has_math_symbols = any(sym in clean_str for sym in math_symbols)
-    
-    if '\\' in clean_str:
-        return False 
-        
-    alpha_chunks = re.split(r'[^a-zA-Z]', clean_str)
-    longest_word_chain = max([len(chunk) for chunk in alpha_chunks] + [0])
-    
-    if not has_math_symbols and longest_word_chain > 4:
-        return True 
-        
-    return False
-
 print("Backend with Acronym Protection is ready!")
 
-# --- ENDPOINT 1: STANDARD TEXT (UPDATED ROUTE NAME) ---
+
+# --- ENDPOINT 1: STANDARD TEXT ---
 @app.route('/recognize-text', methods=['POST'])
 def recognize_handwriting():
     try:
@@ -137,33 +102,39 @@ def recognize_handwriting():
         return jsonify({'error': str(e)}), 500
 
 
-# --- ENDPOINT 2: MATH EQUATIONS (NEW) ---
+# --- ENDPOINT 2: MATH EQUATIONS ---
 @app.route('/recognize-math', methods=['POST'])
 def process_math_equation():
     try:
         data = request.json
         image_data_url = data.get('image')
+
+        if not image_data_url:
+            return jsonify({'error': 'No image provided'}), 400
+
+        # Decode image
         encoded_data = image_data_url.split(',')[1]
         image_bytes = base64.b64decode(encoded_data)
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        # 1. Primary Inference
-        raw_output = math_model(image)
+        print("[MATH AI] Sending image to Gemini 3.5 Flash...")
         
-        # 2. Check for Hallucinations
-        if is_pix2tex_garbage(raw_output):
-            print("[REFEREE] Rejected: Hallucination detected. Starting Repair Agent...")
-            
-            # 3. Trigger the Agentic Repair Loop
-            repaired_output = repair_latex_with_llm(image_bytes, raw_output)
-            print(f"[REPAIR AGENT] New Output: '{repaired_output}'")
-            
-            return jsonify({"text": repaired_output})
-            
-        return jsonify({"text": raw_output})
+        # Pass the image directly to the new Client pointing to the 3.5 model
+        response = gemini_client.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=image,
+            config=math_config
+        )
+        
+        actual_math_output = response.text.strip()
+        print(f"[MATH AI] Gemini Output: '{actual_math_output}'")
+        
+        return jsonify({"text": actual_math_output})
 
     except Exception as e:
+        print("Math Server Error:", str(e))
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(port=5000)

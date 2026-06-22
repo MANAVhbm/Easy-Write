@@ -950,7 +950,10 @@ const tools = {
                 }
                 else if (action.type === 'image') {
                     ctx.globalCompositeOperation = 'source-over';
-                    ctx.drawImage(action.img, action.x, action.y, action.w, action.h);
+                    // PERMANENT FIX: Only attempt to draw if the image exists and is fully loaded!
+                    if (action.img && action.img.complete && action.img.naturalWidth > 0) {
+                        ctx.drawImage(action.img, action.x, action.y, action.w, action.h);
+                    }
                 }
                 else if (action.type === 'ocr_text') {
                     // FIXED: Shrunk the size math (0.5 instead of 0.65) and completely removed forced bold!
@@ -1092,13 +1095,17 @@ const tools = {
         // --- MATH RENDERER ENGINE ---
         // Converts a raw LaTeX string into a visual SVG Image that the Canvas can draw
 // --- MATH RENDERER ENGINE ---
+        // --- MATH RENDERER ENGINE ---
+// --- UNIFIED MATH RENDERER ENGINE ---
+// --- UNIFIED MATH RENDERER ENGINE ---
+// --- UNIFIED MATH RENDERER ENGINE ---
+// --- UNIFIED MATH RENDERER ENGINE ---
         async function renderMathToCanvas(latexString, x, y, width, height) {
             return new Promise((resolve) => {
                 try {
-                    // FIX: Set throwOnError to TRUE so we can catch hallucinations
                     const mathHtml = katex.renderToString(latexString, { 
                         displayMode: true, 
-                        throwOnError: true,
+                        throwOnError: false, // Prevents crashing on slightly messy AI math
                         output: 'html'
                     });
 
@@ -1108,15 +1115,37 @@ const tools = {
                     const svgData = `
                         <svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}">
                             <foreignObject width="100%" height="100%">
-                                <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 28px; color: ${currentColor}; display: flex; align-items: center; justify-content: center; height: 100%;">
-                                    ${mathHtml}
+                                <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <style>
+                                        @import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');
+                                        
+                                        /* 1. Restore pristine KaTeX layout metrics */
+                                        .katex-display, .katex { 
+                                            line-height: normal !important; 
+                                            margin: 0 !important;
+                                        }
+                                        
+                                        /* 2. Apply your handwriting font carefully */
+                                        .katex .mathnormal, .katex .mord, .katex .mtext { 
+                                            font-family: ${currentFont} !important; 
+                                            font-weight: 400 !important;
+                                        }
+                                        
+                                        /* 3. Handwriting fonts have low baselines. This pushes superscripts specifically UP. */
+                                        .katex .msupsub {
+                                            transform: translateY(-0.2em);
+                                            display: inline-block;
+                                        }
+                                    </style>
+                                    
+                                    <div style="font-size: 28px; color: ${currentColor};">${mathHtml}</div>
                                 </div>
                             </foreignObject>
                         </svg>
                     `;
 
-                    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
+                    // PERMANENT FIX: Encodes the SVG into a permanent string that survives refreshes!
+                    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
                     
                     const img = new Image();
                     img.onload = () => {
@@ -1129,17 +1158,15 @@ const tools = {
                             latex: latexString 
                         });
                         redrawCanvas();
-                        resolve(true); // Success
+                        resolve(true);
                     };
                     img.src = url;
                 } catch (error) {
-                    // If KaTeX detects invalid LaTeX, we quietly abort and do nothing.
                     console.warn("AI generated invalid math syntax. Ignoring stroke.");
                     resolve(false); 
                 }
             });
-        }            
-// --- THE COMPUTER VISION NORMALIZATION PIPELINE ---
+        }        
         async function processWord() {
             if (minX === Infinity) return;
             resultsPanel.classList.add('active');
@@ -1754,5 +1781,5 @@ document.getElementById('undoBtn').addEventListener('click', () => {
             saveWorkspace(); // Auto-save the new background!
             redrawCanvas(); 
         });
-
+    
     
