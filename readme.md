@@ -1,31 +1,47 @@
-# Easy-Write 📝
+# Easy-Write
 
-A high-performance, distraction-free digital notebook built with HTML5 Canvas and vanilla JavaScript. Engineered to provide a fluid, infinite-canvas experience with custom math for ink smoothing, ray-casting collision detection, and a local Python OCR bridge.
+Easy-Write is a handwriting-first lecture notebook that turns handwritten notes into clean, searchable digital text. It combines a canvas-based note-taking UI with AI-powered handwriting recognition for both text and math.
 
-## 🏗️ Architecture & Tech Stack
+## Features
+- Multi-page notebook with sidebar navigation
+- Infinite canvas feel with pan and zoom
+- Pen, highlighter, eraser, pointer, lasso, shape, text, and image tools
+- Auto-OCR for handwritten text
+- Separate math mode for equations
+- Dark/light theme support
+- Lock mode for read-only viewing
+- Undo/redo support
+- Autosave with local persistence
+- Searchable PDF export with invisible text overlay
+- Acronym/technical-term protection for cleaner OCR output
 
-* **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
-* **Rendering:** HTML5 Canvas API (2D Context), Pointer Events API
-* **Backend Bridge:** Python 3 (Flask local server)
-* **Storage:** LocalStorage API (JSON serialization of vector data)
-* **Dependencies:** jsPDF (Client-side PDF generation), Feather Icons (SVG UI)
+## Tech Stack
+- Frontend: HTML, CSS, Vanilla JavaScript, Canvas API
+- UI helpers: Feather Icons, KaTeX, jsPDF
+- Backend: Python, Flask, Flask-CORS
+- OCR: Microsoft TrOCR
+- Math OCR: Gemini
+- Post-processing: autocorrect + technical whitelist
 
-## ✨ Core Capabilities
+## How it works
+1. Write on the canvas.
+2. The app groups handwriting into word-sized chunks.
+3. Text chunks are sent to TrOCR.
+4. Math chunks are sent to Gemini.
+5. Recognized output is rendered back into the notebook.
+6. Export the final notes as a searchable PDF.
 
-* **Advanced Digital Ink Engine (`canvas.js`):** Implements point-throttling, pressure-averaging, and Bezier curve smoothing to render jitter-free, pressure-sensitive pen strokes.
-* **Vector Stroke Eraser:** Utilizes dynamic ray-casting collision detection to mathematically remove complete ink strokes or geometric shapes instantly, rather than painting over pixels.
-* **Local OCR Integration (`recognition.js` & `server.py`):** Bridges the frontend canvas to a Python backend via the Fetch API, converting handwriting into editable text without destroying the underlying background grid.
-* **Word Detection (`wordDetector.js`):** Intelligently groups and processes drawn strokes for seamless hand-to-text conversion.
-* **Dynamic Text System:** Standard text boxes that can be typed in, lassoed, moved, and scaled using universal 8-point bounding box handles.
-* **Modular UI (`uiDisplay.js`):** A clean, Excalidraw-inspired toolbar that handles tool switching, color picking, and theme toggling dynamically.
-* **State Management (`main.js`):** Custom undo/redo engine that handles the splicing and restoration of vector arrays and memory blocks.
+## Setup
+1. Clone the repository.
+2. Install Python dependencies.
+3. Add a `.env` file with your Gemini API key.
+4. Run the Flask backend.
+5. Open the front end in a browser or serve it locally.
 
-## 🚀 Local Installation
+## Project Structure
+- `index.html` — app shell and notebook UI
+- `main.js` — canvas logic, tools, OCR orchestration, export, autosave
+- `server.py` — backend OCR endpoints
 
-### 1. Frontend Setup
-The frontend requires no build steps or package managers. 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/MANAVhbm/Easy-Write.git](https://github.com/MANAVhbm/Easy-Write.git)
-
-2. Open index.html in any modern web browser
+## Why this project is useful
+Easy-Write is designed for lectures, revision, and study workflows where handwritten notes need to become clean, searchable, and organized.
